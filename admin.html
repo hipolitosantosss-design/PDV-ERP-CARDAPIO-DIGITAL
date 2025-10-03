@@ -1,0 +1,323 @@
+<!-- ===================================
+   ARQUIVO: admin.html
+   DESCRIÇÃO: Interface do Painel Administrativo
+   =================================== -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1>Painel Administrativo</h1>
+            <button class="btn btn-secondary btn-small" onclick="window.close()">Sair</button>
+        </header>
+
+        <div class="admin-content">
+            <div class="admin-tabs">
+                <button class="tab-btn active" data-tab="config">Configurações</button>
+                <button class="tab-btn" data-tab="produtos">Produtos</button>
+                <button class="tab-btn" data-tab="despesas">Despesas</button>
+                <button class="tab-btn" data-tab="relatorio">Relatório</button>
+                <button class="tab-btn" data-tab="financeiro">Financeiro</button>
+                <button class="tab-btn" data-tab="usuarios">Usuários</button>
+                <button class="tab-btn" data-tab="metadiaria">Meta Diária</button>
+            </div>
+
+            <!-- TAB CONFIGURAÇÕES -->
+            <div id="configTab" class="tab-content active">
+                <h2>Configurações do Sistema</h2>
+                
+                <div class="logo-section">
+                    <h3>Logo da Empresa</h3>
+                    <p class="logo-description">Faça upload da logo que aparecerá no PDV e no Cardápio Digital</p>
+                    
+                    <div class="form-group">
+                        <label>Selecione a Logo:</label>
+                        <input type="file" id="logoUpload" accept="image/*">
+                    </div>
+                    
+                    <div id="logoPreviewContainer" class="logo-preview-container">
+                        <p class="preview-label">Logo Atual:</p>
+                        <img id="logoPreview" class="logo-preview">
+                        <button class="btn btn-danger btn-small remove-logo-btn" onclick="removeLogo()">Remover Logo</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB PRODUTOS -->
+            <div id="produtosTab" class="tab-content">
+                <h2>Gerenciar Produtos</h2>
+                
+                <button class="btn btn-primary" id="showProductFormBtn">Novo Produto</button>
+                
+                <div id="productFormContainer" class="form-container">
+                    <form id="productForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nome do Produto:*</label>
+                                <input type="text" id="prodName" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Código do Produto:*</label>
+                                <input type="text" id="prodCode" maxlength="6" placeholder="Ex: ABC123" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Categoria:*</label>
+                                <select id="prodCategory" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="alimentos">Alimentos</option>
+                                    <option value="bebidas">Bebidas</option>
+                                    <option value="assados">Assados</option>
+                                    <option value="frios">Frios</option>
+                                    <option value="mercearia">Mercearia</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Imagem do Produto (Opcional):</label>
+                                <input type="file" id="prodImage" accept="image/*">
+                                <img id="imagePreview" class="image-preview">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Descrição:</label>
+                            <textarea id="prodDescription" placeholder="Descrição opcional do produto"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Preço:*</label>
+                                <input type="number" id="prodPrice" step="0.01" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Quantidade em Estoque:*</label>
+                                <input type="number" id="prodStock" min="0" max="999999" placeholder="Máx: 999999" required>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-success">Salvar Produto</button>
+                            <button type="button" class="btn btn-secondary" id="cancelProductBtn">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Imagem</th>
+                            <th>Código</th>
+                            <th>Nome</th>
+                            <th>Categoria</th>
+                            <th>Descrição</th>
+                            <th>Preço</th>
+                            <th>Estoque</th>
+                            <th>Status</th>
+                            <th>Ativar/Desativar</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTable"></tbody>
+                </table>
+            </div>
+
+            <!-- TAB DESPESAS -->
+            <div id="despesasTab" class="tab-content">
+                <h2>Gerenciar Despesas</h2>
+                
+                <div class="expense-header">
+                    <button class="btn btn-primary" id="showExpenseFormBtn">Nova Despesa</button>
+                    
+                    <div class="expense-summary">
+                        <div class="expense-summary-item">
+                            <span class="expense-summary-label">Total do Mês:</span>
+                            <span class="expense-summary-value" id="monthTotalExpense">R$ 0,00</span>
+                        </div>
+                        <div class="expense-summary-item">
+                            <span class="expense-summary-label">Valor Pago:</span>
+                            <span class="expense-summary-value expense-paid" id="monthPaidExpense">R$ 0,00</span>
+                        </div>
+                        <div class="expense-summary-item">
+                            <span class="expense-summary-label">A Pagar:</span>
+                            <span class="expense-summary-value expense-pending" id="monthPendingExpense">R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="expenseFormContainer" class="form-container">
+                    <form id="expenseForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Descrição:*</label>
+                                <input type="text" id="expDesc" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Valor:*</label>
+                                <input type="number" id="expValue" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Data:*</label>
+                                <input type="date" id="expDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Status do Pagamento:*</label>
+                                <select id="expPaymentStatus" required>
+                                    <option value="pending">A Pagar</option>
+                                    <option value="paid">Pago</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="expRecurring">
+                                    Despesa Recorrente
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-row" id="recurringMonths">
+                            <div class="form-group">
+                                <label>Repetir por quantos meses:*</label>
+                                <input type="number" id="expMonths" min="1" max="60">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-success">Salvar Despesa</button>
+                            <button type="button" class="btn btn-secondary" id="cancelExpenseBtn">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="expensesList"></div>
+            </div>
+
+            <!-- TAB RELATÓRIO -->
+            <div id="relatorioTab" class="tab-content">
+                <h2>Relatórios de Vendas</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total de Vendas</h3>
+                        <div class="value" id="totalSales">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Receita Total</h3>
+                        <div class="value" id="totalRevenue">R$ 0,00</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Ticket Médio</h3>
+                        <div class="value" id="avgTicket">R$ 0,00</div>
+                    </div>
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Cliente</th>
+                            <th>Itens</th>
+                            <th>Pagamento</th>
+                            <th>Total</th>
+                            <th>Vendedor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesTable"></tbody>
+                </table>
+            </div>
+
+            <!-- TAB FINANCEIRO -->
+            <div id="financeiroTab" class="tab-content">
+                <h2>Resumo Financeiro</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Receitas</h3>
+                        <div class="value" id="finRevenue">R$ 0,00</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Despesas</h3>
+                        <div class="value" id="finExpenses">R$ 0,00</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Lucro</h3>
+                        <div class="value" id="finProfit">R$ 0,00</div>
+                    </div>
+                </div>
+
+                <h3 class="section-title">Despesas por Mês</h3>
+                <div id="expensesByMonth"></div>
+            </div>
+
+            <!-- TAB USUÁRIOS -->
+            <div id="usuariosTab" class="tab-content">
+                <h2>Gerenciar Usuários</h2>
+                
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Usuário</th>
+                            <th>Tipo</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTable"></tbody>
+                </table>
+            </div>
+
+            <!-- TAB META DIÁRIA -->
+            <div id="metadiariaTab" class="tab-content">
+                <h2>Meta de Vendas Diária</h2>
+                <p class="tab-description">Calcule quanto você precisa vender por dia para cobrir suas despesas mensais</p>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total de Despesas do Mês</h3>
+                        <div class="value value-danger" id="totalExpensesMonth">R$ 0,00</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Dias Úteis do Mês</h3>
+                        <div class="value" id="workingDays">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Meta de Venda Diária</h3>
+                        <div class="value" id="dailyGoal">R$ 0,00</div>
+                    </div>
+                </div>
+
+                <div class="config-box">
+                    <h3>Configurar Dias de Funcionamento</h3>
+                    <p class="config-description">Selecione quantos dias por semana o seu negócio funciona:</p>
+                    
+                    <div class="form-group">
+                        <label>Dias de funcionamento por semana:</label>
+                        <select id="workingDaysPerWeek" onchange="calculateDailyGoal()">
+                            <option value="5">5 dias (Segunda a Sexta)</option>
+                            <option value="6" selected>6 dias (Segunda a Sábado)</option>
+                            <option value="7">7 dias (Todos os dias)</option>
+                        </select>
+                    </div>
+
+                    <div class="interpretation-box">
+                        <h4>Interpretação:</h4>
+                        <p id="goalInterpretation">Configure os dias de funcionamento para ver a meta diária.</p>
+                    </div>
+                </div>
+
+                <div class="config-box">
+                    <h3>Despesas do Mês Atual</h3>
+                    <div id="currentMonthExpensesList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

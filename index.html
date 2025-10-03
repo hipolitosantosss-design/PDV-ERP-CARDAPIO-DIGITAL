@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema PDV + ERP</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- TELA DE LOGIN -->
+    <div id="loginScreen" class="screen active">
+        <div class="login-container">
+            <div class="login-box">
+                <div class="login-logo" id="loginLogoContainer">
+                    <h1 style="color:#5C4033;">PDV</h1>
+                </div>
+                <h2>Bem-vindo ao Sistema</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>Usuário:</label>
+                        <input type="text" id="loginUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Senha:</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Entrar</button>
+                </form>
+                <div class="links">
+                    <a href="#" id="showRegisterLink">Criar conta</a>
+                    <a href="#" id="showRecoveryLink">Esqueci minha senha</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA DE CADASTRO -->
+    <div id="registerScreen" class="screen">
+        <div class="login-container">
+            <div class="login-box">
+                <h2>Criar Nova Conta</h2>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label>Nome Completo:*</label>
+                        <input type="text" id="regName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Usuário:*</label>
+                        <input type="text" id="regUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Senha:*</label>
+                        <input type="password" id="regPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Pergunta Secreta:*</label>
+                        <select id="regSecretQuestion" required>
+                            <option value="">Selecione...</option>
+                            <option value="pet">Qual o nome do seu primeiro pet?</option>
+                            <option value="city">Em qual cidade você nasceu?</option>
+                            <option value="school">Nome da sua primeira escola?</option>
+                            <option value="mother">Nome de solteira da sua mãe?</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Resposta:*</label>
+                        <input type="text" id="regSecretAnswer" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success">Cadastrar</button>
+                        <button type="button" class="btn btn-secondary" id="backToLogin">Voltar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA DE RECUPERAÇÃO -->
+    <div id="recoveryScreen" class="screen">
+        <div class="login-container">
+            <div class="login-box">
+                <h2>Recuperar Senha</h2>
+                <form id="recoveryForm">
+                    <div class="form-group">
+                        <label>Usuário:*</label>
+                        <input type="text" id="recUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Pergunta Secreta:</label>
+                        <select id="recSecretQuestion" disabled>
+                            <option value="">Aguardando usuário...</option>
+                            <option value="pet">Qual o nome do seu primeiro pet?</option>
+                            <option value="city">Em qual cidade você nasceu?</option>
+                            <option value="school">Nome da sua primeira escola?</option>
+                            <option value="mother">Nome de solteira da sua mãe?</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Resposta:*</label>
+                        <input type="text" id="recAnswer" disabled required>
+                    </div>
+                    <div class="form-group" id="newPasswordGroup" style="display: none;">
+                        <label>Nova Senha:*</label>
+                        <input type="password" id="recNewPassword">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary" id="checkAnswerBtn" disabled>Verificar Resposta</button>
+                        <button type="submit" class="btn btn-success" id="changePasswordBtn" style="display: none;">Alterar Senha</button>
+                        <button type="button" class="btn btn-secondary" id="backToLoginFromRecovery">Voltar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA DO PDV -->
+    <div id="pdvScreen" class="screen">
+        <div class="pdv-container">
+            <!-- SIDEBAR -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-logo" id="sidebarLogoContainer"></div>
+                    <h3>Menu Principal</h3>
+                </div>
+                <nav>
+                    <div class="menu-item active" data-page="venda">🛒 Venda</div>
+                    <div class="menu-item" data-page="clientes">👥 Clientes</div>
+                    <div class="menu-item admin-only" data-page="admin">⚙️ Administração</div>
+                </nav>
+                <div class="sidebar-footer">
+                    <p><strong id="currentUser">Usuário</strong></p>
+                    <button class="btn btn-danger btn-small" id="logoutBtn">Sair</button>
+                </div>
+            </aside>
+
+            <!-- CONTEÚDO PRINCIPAL -->
+            <main class="main-content">
+                <div class="topbar">
+                    <h2>Sistema PDV + ERP</h2>
+                </div>
+
+                <div class="content">
+                    <!-- PÁGINA VENDA -->
+                    <div id="vendaPage" class="page active">
+                        <div class="venda-layout">
+                            <div class="products-section">
+                                <h3>Produtos Disponíveis</h3>
+                                <input type="text" id="searchProduct" class="search-box" placeholder="Buscar produto...">
+                                <div id="productsList"></div>
+                            </div>
+
+                            <div class="cart-section">
+                                <h3>Carrinho</h3>
+                                <div id="cartItems"></div>
+                                <div class="cart-total">
+                                    <h3>Total</h3>
+                                    <div class="total-value">R$ <span id="cartTotal">0,00</span></div>
+                                </div>
+                                <div class="cart-actions">
+                                    <button class="btn btn-danger" id="limparCarrinhoBtn">Limpar Carrinho</button>
+                                    <button class="btn btn-success" id="finalizarVendaBtn">Finalizar Venda</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PÁGINA CLIENTES -->
+                    <div id="clientesPage" class="page">
+                        <h2>Gestão de Clientes</h2>
+                        <button class="btn btn-primary" id="showClientFormBtn">Novo Cliente</button>
+
+                        <div id="clientFormContainer" style="display: none; margin-top: 20px;">
+                            <form id="clientForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Nome Completo:*</label>
+                                        <input type="text" id="clientName" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>CPF/CNPJ:</label>
+                                        <input type="text" id="clientDoc">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>Telefone:*</label>
+                                        <input type="tel" id="clientPhone" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>E-mail:*</label>
+                                        <input type="email" id="clientEmail" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Endereço:</label>
+                                    <input type="text" id="clientAddress">
+                                </div>
+                                <div class="form-group">
+                                    <label>Ponto de Referência:</label>
+                                    <input type="text" id="clientReference">
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-success">Salvar Cliente</button>
+                                    <button type="button" class="btn btn-secondary" id="cancelClientBtn">Cancelar</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <input type="text" id="searchClient" class="search-box" placeholder="Buscar cliente..." style="margin-top: 20px;">
+                        <div id="clientsList" style="margin-top: 20px;"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL FINALIZAR VENDA -->
+    <div id="vendaModal" class="modal">
+        <div class="modal-content">
+            <h3>Finalizar Venda</h3>
+            <div class="form-group">
+                <label>Cliente:</label>
+                <select id="vendaCliente">
+                    <option value="">Cliente não cadastrado</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Forma de Pagamento:*</label>
+                <select id="vendaPagamento" required>
+                    <option value="dinheiro">Dinheiro</option>
+                    <option value="debito">Débito</option>
+                    <option value="credito">Crédito</option>
+                    <option value="pix">PIX</option>
+                </select>
+            </div>
+            <div class="cart-total">
+                <h3>Total da Venda</h3>
+                <div class="total-value">R$ <span id="modalTotal">0,00</span></div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-success" id="confirmarVendaBtn">Confirmar Venda</button>
+                <button class="btn btn-secondary" id="cancelarVendaBtn">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

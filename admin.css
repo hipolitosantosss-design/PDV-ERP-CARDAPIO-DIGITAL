@@ -1,0 +1,628 @@
+/* ===================================
+   ARQUIVO: admin.css
+   DESCRIÇÃO: Estilos do Painel Administrativo
+   =================================== */
+
+/* ===== ADMIN - VARIÁVEIS ===== */
+:root {
+    --admin-primary: #8B6F47;
+    --admin-primary-dark: #6D5635;
+    --admin-secondary: #5C4033;
+    --admin-bg: #E8D5C4;
+    --admin-bg-light: #F5E6D3;
+    --admin-border: #D4A574;
+    --admin-text: #5C4033;
+    --admin-success: #6B8E23;
+    --admin-danger: #A0522D;
+}
+
+/* ===== BASE ADMIN ===== */
+* {margin: 0; padding: 0; box-sizing: border-box;}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.admin-container {
+    min-height: 100vh;
+    background: var(--admin-bg);
+}
+
+.admin-header {
+    background: var(--admin-secondary);
+    color: var(--admin-bg-light);
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.admin-content {
+    padding: 30px;
+}
+
+/* ===== TABS ===== */
+.admin-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+    background: var(--admin-bg-light);
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    padding: 12px 24px;
+    border: none;
+    background: var(--admin-bg);
+    cursor: pointer;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s;
+    color: var(--admin-text);
+}
+
+.tab-btn.active {
+    background: var(--admin-primary);
+    color: var(--admin-bg-light);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.tab-content {
+    display: none;
+    background: var(--admin-bg-light);
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* ===== CARDS E STATS ===== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, var(--admin-primary) 0%, #A0826D 100%);
+    color: var(--admin-bg-light);
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.stat-card h3 {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 10px;
+}
+
+.stat-card .value {
+    font-size: 32px;
+    font-weight: bold;
+}
+
+.value-danger {
+    color: #dc3545 !important;
+}
+
+/* ===== TABELAS ===== */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.table th,
+.table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.table th {
+    background: var(--admin-primary);
+    font-weight: 600;
+    color: var(--admin-bg-light);
+}
+
+.table tr:hover {
+    background: #FFF8F0;
+}
+
+/* ===== FORMULÁRIOS ===== */
+.form-container {
+    display: none;
+    margin-top: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--admin-text);
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--admin-border);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+    font-family: inherit;
+    background: white;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--admin-primary);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+#recurringMonths {
+    display: none;
+}
+
+/* ===== BOTÕES ===== */
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.btn-primary {
+    background: var(--admin-primary);
+    color: var(--admin-bg-light);
+}
+
+.btn-primary:hover {
+    background: var(--admin-primary-dark);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.btn-secondary {
+    background: #A0826D;
+    color: var(--admin-bg-light);
+}
+
+.btn-success {
+    background: var(--admin-success);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--admin-danger);
+    color: white;
+}
+
+.btn-small {
+    padding: 8px 16px;
+    font-size: 12px;
+}
+
+/* ===== TOGGLE SWITCH ===== */
+.toggle-switch {
+    display: inline-block;
+    position: relative;
+    width: 50px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: var(--admin-success);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+/* ===== IMAGENS ===== */
+.image-preview {
+    width: 100px;
+    height: 100px;
+    border: 2px solid var(--admin-border);
+    border-radius: 8px;
+    object-fit: cover;
+    margin-top: 10px;
+    display: none;
+}
+
+.product-image-cell {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+/* ===== LOGO ===== */
+.logo-section {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border: 2px solid var(--admin-border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.logo-section h3 {
+    color: var(--admin-text);
+    margin-bottom: 15px;
+}
+
+.logo-description {
+    color: #8B6F47;
+    margin-bottom: 15px;
+}
+
+.logo-preview-container {
+    display: none;
+}
+
+.preview-label {
+    color: var(--admin-text);
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.logo-preview {
+    max-width: 200px;
+    max-height: 100px;
+    margin-top: 15px;
+    border: 2px solid var(--admin-border);
+    border-radius: 8px;
+    padding: 10px;
+    background: var(--admin-bg-light);
+}
+
+.remove-logo-btn {
+    margin-top: 10px;
+}
+
+/* ===== DESPESAS - HEADER E RESUMO ===== */
+.expense-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.expense-summary {
+    display: flex;
+    gap: 20px;
+    background: white;
+    padding: 15px 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 2px solid var(--admin-border);
+}
+
+.expense-summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.expense-summary-label {
+    font-size: 11px;
+    color: var(--admin-text);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.expense-summary-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--admin-text);
+}
+
+.expense-paid {
+    color: var(--admin-success) !important;
+}
+
+.expense-pending {
+    color: var(--admin-danger) !important;
+}
+
+/* ===== DESPESAS - LISTA EM BLOCOS ===== */
+#expensesList {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 15px;
+}
+
+.expense-item {
+    padding: 18px;
+    border: 2px solid var(--admin-border);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.3s;
+}
+
+.expense-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+.expense-recurring {
+    background: #FFF3CD;
+    border-color: #F0C14B;
+}
+
+.expense-paid-status {
+    background: #E8F5E9;
+    border-color: var(--admin-success);
+}
+
+.expense-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.expense-info h4 {
+    color: var(--admin-text);
+    font-size: 16px;
+    margin: 0;
+    word-break: break-word;
+}
+
+.expense-info p {
+    color: #8B6F47;
+    font-size: 12px;
+    margin: 0;
+}
+
+.expense-price {
+    text-align: center;
+    padding: 10px 0;
+}
+
+.expense-price-value {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--admin-danger);
+    display: block;
+}
+
+.expense-status-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 5px;
+}
+
+.badge-paid {
+    background: var(--admin-success);
+    color: white;
+}
+
+.badge-pending {
+    background: var(--admin-danger);
+    color: white;
+}
+
+.expense-status-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.expense-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.expense-actions .btn {
+    padding: 10px 18px;
+    font-size: 13px;
+    white-space: nowrap;
+    width: 100%;
+}
+
+/* ===== PRODUTOS - ESPAÇAMENTO ENTRE BOTÕES ===== */
+.product-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* ===== ALERTAS ===== */
+.alert {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* ===== META DIÁRIA ===== */
+.tab-description {
+    color: #8B6F47;
+    margin-bottom: 20px;
+}
+
+.config-box {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    margin-top: 25px;
+    border: 2px solid var(--admin-border);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.config-box h3 {
+    color: var(--admin-text);
+    margin-bottom: 15px;
+}
+
+.config-description {
+    color: #8B6F47;
+    margin-bottom: 15px;
+}
+
+.interpretation-box {
+    background: #FFF3CD;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+    border: 2px solid var(--admin-border);
+}
+
+.interpretation-box h4 {
+    color: var(--admin-text);
+    margin-bottom: 10px;
+}
+
+.interpretation-box p {
+    color: #8B6F47;
+    margin-bottom: 8px;
+}
+
+#currentMonthExpensesList {
+    min-height: 50px;
+}
+
+/* ===== FINANCEIRO ===== */
+.section-title {
+    margin-top: 30px;
+    color: var(--admin-text);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .expense-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .expense-summary {
+        flex-direction: column;
+    }
+    
+    #expensesList {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-tabs {
+        flex-direction: column;
+    }
+    
+    .admin-content {
+        padding: 15px;
+    }
+    
+    #expensesList {
+        grid-template-columns: 1fr;
+    }
+}
