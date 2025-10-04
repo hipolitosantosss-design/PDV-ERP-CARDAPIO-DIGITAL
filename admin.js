@@ -50,9 +50,15 @@ function syncWithParent() {
 
 if (!syncWithParent()) loadFromStorage();
 
+// Sincronização mais controlada - apenas a cada 3 segundos
+let lastSync = Date.now();
 setInterval(() => {
-    syncWithParent() ? refreshCurrentTab() : (loadFromStorage(), refreshCurrentTab());
-}, 1000);
+    const now = Date.now();
+    if (now - lastSync > 3000) {
+        syncWithParent() || loadFromStorage();
+        lastSync = now;
+    }
+}, 3000);
 
 // ===== HELPERS =====
 function showAlert(message, type = 'success') {
@@ -210,23 +216,82 @@ window.deleteProduct = function(productId) {
     }
 };
 
+// ===== EXCLUIR TODOS OS PRODUTOS =====
+document.getElementById('deleteAllProductsBtn').addEventListener('click', () => {
+    if (DB.products.length === 0) {
+        showAlert('Não há produtos para excluir.', 'error');
+        return;
+    }
+    
+    const totalProducts = DB.products.length;
+    const confirmMessage = `⚠️ ATENÇÃO!\n\nVocê está prestes a excluir TODOS OS ${totalProducts} PRODUTOS cadastrados.\n\nEsta ação NÃO PODE ser desfeita!\n\nDeseja realmente continuar?`;
+    
+    if (confirm(confirmMessage)) {
+        const doubleConfirm = prompt(`Para confirmar, digite: EXCLUIR TUDO`);
+        if (doubleConfirm === 'EXCLUIR TUDO') {
+            DB.products = [];
+            saveToStorage();
+            loadProducts();
+            showAlert(`${totalProducts} produtos excluídos com sucesso!`, 'success');
+        } else {
+            showAlert('Exclusão cancelada. Texto de confirmação incorreto.', 'error');
+        }
+    }
+});
+
 // ===== DESPESAS =====
+let isEditingExpense = false;
+let editingExpenseId = null;
+
 document.getElementById('showExpenseFormBtn').addEventListener('click', () => {
+    isEditingExpense = false;
+    editingExpenseId = null;
+    document.getElementById('expenseForm').reset();
+    document.getElementById('expRecurring').disabled = false;
+    document.getElementById('expMonths').disabled = false;
     document.getElementById('expenseFormContainer').style.display = 'block';
 });
 
 document.getElementById('cancelExpenseBtn').addEventListener('click', () => {
+    isEditingExpense = false;
+    editingExpenseId = null;
     document.getElementById('expenseFormContainer').style.display = 'none';
     document.getElementById('expenseForm').reset();
     document.getElementById('recurringMonths').style.display = 'none';
+    document.getElementById('expRecurring').disabled = false;
+    document.getElementById('expMonths').disabled = false;
 });
 
 document.getElementById('expRecurring').addEventListener('change', (e) => {
     document.getElementById('recurringMonths').style.display = e.target.checked ? 'flex' : 'none';
 });
 
+// ===== EXCLUIR TODAS AS DESPESAS =====
+document.getElementById('deleteAllExpensesBtn').addEventListener('click', () => {
+    if (DB.expenses.length === 0) {
+        showAlert('Não há despesas para excluir.', 'error');
+        return;
+    }
+    
+    const totalExpenses = DB.expenses.length;
+    const confirmMessage = `⚠️ ATENÇÃO!\n\nVocê está prestes a excluir TODAS AS ${totalExpenses} DESPESAS cadastradas.\n\nEsta ação NÃO PODE ser desfeita!\n\nDeseja realmente continuar?`;
+    
+    if (confirm(confirmMessage)) {
+        const doubleConfirm = prompt(`Para confirmar, digite: EXCLUIR TUDO`);
+        if (doubleConfirm === 'EXCLUIR TUDO') {
+            DB.expenses = [];
+            saveToStorage();
+            loadExpenses();
+            showAlert(`${totalExpenses} despesas excluídas com sucesso!`, 'success');
+        } else {
+            showAlert('Exclusão cancelada. Texto de confirmação incorreto.', 'error');
+        }
+    }
+});
+
 document.getElementById('expenseForm').addEventListener('submit', (e) => {
     e.preventDefault();
+    
     const description = document.getElementById('expDesc').value;
     const value = parseFloat(document.getElementById('expValue').value);
     const date = new Date(document.getElementById('expDate').value);
@@ -234,17 +299,59 @@ document.getElementById('expenseForm').addEventListener('submit', (e) => {
     const isRecurring = document.getElementById('expRecurring').checked;
     const months = isRecurring ? parseInt(document.getElementById('expMonths').value) : 1;
     
+    // MODO EDIÇÃO
+    if (isEditingExpense && editingExpenseId) {
+        const expense = DB.expenses.find(e => e.id === editingExpenseId);
+        if (expense) {
+            expense.description = description;
+            expense.value = value;
+            expense.date = date.toISOString();
+            expense.paymentStatus = paymentStatus;
+            
+            saveToStorage();
+            showAlert('Despesa atualizada com sucesso!', 'success');
+        }
+        
+        isEditingExpense = false;
+        editingExpenseId = null;
+        document.getElementById('expenseForm').reset();
+        document.getElementById('expenseFormContainer').style.display = 'none';
+        document.getElementById('recurringMonths').style.display = 'none';
+        document.getElementById('expRecurring').disabled = false;
+        document.getElementById('expMonths').disabled = false;
+        loadExpenses();
+        return;
+    }
+    
+    // MODO CRIAÇÃO
     if (isRecurring && months > 0) {
         for (let i = 0; i < months; i++) {
             const expenseDate = new Date(date);
             expenseDate.setMonth(expenseDate.getMonth() + i);
-            DB.expenses.push({id:Date.now()+i,description,value,date:expenseDate.toISOString(),paymentStatus,isRecurring:true,month:i+1,totalMonths:months});
+            DB.expenses.push({
+                id: Date.now() + i,
+                description,
+                value,
+                date: expenseDate.toISOString(),
+                paymentStatus,
+                isRecurring: true,
+                month: i + 1,
+                totalMonths: months
+            });
         }
         showAlert(`Despesa recorrente criada para ${months} meses!`, 'success');
     } else {
-        DB.expenses.push({id:Date.now(),description,value,date:date.toISOString(),paymentStatus,isRecurring:false});
+        DB.expenses.push({
+            id: Date.now(),
+            description,
+            value,
+            date: date.toISOString(),
+            paymentStatus,
+            isRecurring: false
+        });
         showAlert('Despesa cadastrada com sucesso!', 'success');
     }
+    
     saveToStorage();
     document.getElementById('expenseForm').reset();
     document.getElementById('expenseFormContainer').style.display = 'none';
@@ -257,29 +364,34 @@ function updateExpensesSummary() {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     
+    // Corrigir despesas antigas sem paymentStatus
+    DB.expenses.forEach(expense => {
+        if (!expense.paymentStatus) {
+            expense.paymentStatus = 'pending';
+        }
+    });
+    
     const currentMonthExpenses = DB.expenses.filter(expense => {
         const expenseDate = new Date(expense.date);
         return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
     });
     
-    const totalExpenses = currentMonthExpenses.reduce((sum, expense) => sum + (expense.value || 0), 0);
+    let totalExpenses = 0;
+    let paidExpenses = 0;
     
-    const paidExpenses = currentMonthExpenses
-        .filter(expense => expense.paymentStatus === 'paid')
-        .reduce((sum, expense) => sum + (expense.value || 0), 0);
+    currentMonthExpenses.forEach(expense => {
+        const val = parseFloat(expense.value) || 0;
+        totalExpenses += val;
+        if (expense.paymentStatus === 'paid') {
+            paidExpenses += val;
+        }
+    });
     
     const pendingExpenses = totalExpenses - paidExpenses;
     
     document.getElementById('monthTotalExpense').textContent = `R$ ${totalExpenses.toFixed(2)}`;
     document.getElementById('monthPaidExpense').textContent = `R$ ${paidExpenses.toFixed(2)}`;
     document.getElementById('monthPendingExpense').textContent = `R$ ${pendingExpenses.toFixed(2)}`;
-    
-    console.log('=== RESUMO DESPESAS ===');
-    console.log('Total despesas do mês:', currentMonthExpenses.length);
-    console.log('Total em R$:', totalExpenses.toFixed(2));
-    console.log('Despesas pagas:', currentMonthExpenses.filter(e => e.paymentStatus === 'paid').length);
-    console.log('Pago em R$:', paidExpenses.toFixed(2));
-    console.log('A Pagar em R$:', pendingExpenses.toFixed(2));
 }
 
 function loadExpenses() {
@@ -291,17 +403,43 @@ function loadExpenses() {
         container.innerHTML = '<p style="text-align:center;color:#666;">Nenhuma despesa cadastrada.</p>';
         return;
     }
-    const sortedExpenses = [...DB.expenses].sort((a,b) => new Date(b.date) - new Date(a.date));
+    
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    // Ordenar despesas: mês atual primeiro, depois por data decrescente
+    const sortedExpenses = [...DB.expenses].sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        
+        const isACurrentMonth = dateA.getMonth() === currentMonth && dateA.getFullYear() === currentYear;
+        const isBCurrentMonth = dateB.getMonth() === currentMonth && dateB.getFullYear() === currentYear;
+        
+        if (isACurrentMonth && !isBCurrentMonth) return -1;
+        if (isBCurrentMonth && !isACurrentMonth) return 1;
+        return dateB - dateA;
+    });
+    
     sortedExpenses.forEach(expense => {
         const div = document.createElement('div');
         const isPaid = expense.paymentStatus === 'paid';
+        const expenseDate = new Date(expense.date);
+        const isCurrentMonth = expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+        
         div.className = `expense-item ${expense.isRecurring?'expense-recurring':''} ${isPaid?'expense-paid-status':''}`;
-        const date = new Date(expense.date);
-        const formattedDate = date.toLocaleDateString('pt-BR');
+        
+        // Extrair apenas a data (ignorando timezone)
+        const dateParts = expense.date.split('T')[0].split('-');
+        const year = dateParts[0];
+        const month = dateParts[1];
+        const day = dateParts[2];
+        const formattedDate = `${day}/${month}/${year}`;
+        
         div.innerHTML = `
             <div class="expense-info">
                 <h4>${expense.description}</h4>
-                <p>Data: ${formattedDate} ${expense.isRecurring?`<br>Recorrente (${expense.month}/${expense.totalMonths})`:''}</p>
+                <p>Vencimento: ${formattedDate} ${expense.isRecurring?`<br>Recorrente (${expense.month}/${expense.totalMonths})`:''}</p>
             </div>
             <div class="expense-price">
                 <span class="expense-price-value">R$ ${expense.value.toFixed(2)}</span>
@@ -310,6 +448,7 @@ function loadExpenses() {
                 <span class="expense-status-badge ${isPaid?'badge-paid':'badge-pending'}">${isPaid?'✓ Pago':'⏳ A Pagar'}</span>
             </div>
             <div class="expense-actions">
+                <button class="btn btn-small btn-primary" onclick="editExpense(${expense.id})">Editar</button>
                 <button class="btn btn-small ${isPaid?'btn-secondary':'btn-success'}" onclick="togglePaymentStatus(${expense.id})">${isPaid?'Marcar A Pagar':'Marcar Pago'}</button>
                 <button class="btn btn-small btn-danger" onclick="deleteExpense(${expense.id})">Excluir</button>
             </div>
@@ -321,6 +460,12 @@ function loadExpenses() {
 window.togglePaymentStatus = function(expenseId) {
     const expense = DB.expenses.find(e => e.id === expenseId);
     if (!expense) return;
+    
+    // Garante que o campo existe
+    if (!expense.paymentStatus) {
+        expense.paymentStatus = 'pending';
+    }
+    
     expense.paymentStatus = expense.paymentStatus === 'paid' ? 'pending' : 'paid';
     saveToStorage();
     loadExpenses();
@@ -337,6 +482,45 @@ window.deleteExpense = function(expenseId) {
             showAlert('Despesa excluída!', 'success');
         }
     }
+};
+
+// ===== EDITAR DESPESA =====
+window.editExpense = function(expenseId) {
+    const expense = DB.expenses.find(e => e.id === expenseId);
+    if (!expense) return;
+    
+    // Ativar modo edição
+    isEditingExpense = true;
+    editingExpenseId = expenseId;
+    
+    // Preencher o formulário com os dados da despesa
+    document.getElementById('expDesc').value = expense.description;
+    document.getElementById('expValue').value = expense.value;
+    
+    // Formatar a data para o input (YYYY-MM-DD)
+    const dateParts = expense.date.split('T')[0];
+    document.getElementById('expDate').value = dateParts;
+    
+    document.getElementById('expPaymentStatus').value = expense.paymentStatus;
+    
+    // Despesas recorrentes não podem ter o checkbox alterado
+    if (expense.isRecurring) {
+        document.getElementById('expRecurring').checked = true;
+        document.getElementById('expRecurring').disabled = true;
+        document.getElementById('recurringMonths').style.display = 'flex';
+        document.getElementById('expMonths').value = expense.totalMonths;
+        document.getElementById('expMonths').disabled = true;
+    } else {
+        document.getElementById('expRecurring').checked = false;
+        document.getElementById('expRecurring').disabled = true;
+        document.getElementById('recurringMonths').style.display = 'none';
+    }
+    
+    // Mostrar formulário
+    document.getElementById('expenseFormContainer').style.display = 'block';
+    
+    // Scroll suave até o formulário
+    document.getElementById('expenseFormContainer').scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 
 // ===== RELATÓRIO DE VENDAS =====
@@ -367,15 +551,33 @@ function loadSalesReport() {
     });
 }
 
-// ===== FINANCEIRO =====
+// ===== FINANCEIRO (CORRIGIDO PARA MÊS VIGENTE) =====
 function loadFinancial() {
-    const totalRevenue = DB.sales.reduce((sum, sale) => sum + sale.total, 0);
-    const totalExpenses = DB.expenses.reduce((sum, exp) => sum + exp.value, 0);
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    // FILTRAR VENDAS DO MÊS ATUAL
+    const currentMonthSales = DB.sales.filter(sale => {
+        const saleDate = new Date(sale.date);
+        return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
+    });
+    
+    // FILTRAR DESPESAS DO MÊS ATUAL
+    const currentMonthExpenses = DB.expenses.filter(expense => {
+        const expenseDate = new Date(expense.date);
+        return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+    });
+    
+    const totalRevenue = currentMonthSales.reduce((sum, sale) => sum + sale.total, 0);
+    const totalExpenses = currentMonthExpenses.reduce((sum, exp) => sum + exp.value, 0);
     const profit = totalRevenue - totalExpenses;
+    
     document.getElementById('finRevenue').textContent = `R$ ${totalRevenue.toFixed(2)}`;
     document.getElementById('finExpenses').textContent = `R$ ${totalExpenses.toFixed(2)}`;
     document.getElementById('finProfit').textContent = `R$ ${profit.toFixed(2)}`;
     document.getElementById('finProfit').style.color = profit >= 0 ? '#28a745' : '#dc3545';
+    
     const expensesByMonth = {};
     DB.expenses.forEach(expense => {
         const date = new Date(expense.date);
@@ -385,29 +587,82 @@ function loadFinancial() {
         expensesByMonth[monthKey].total += expense.value;
         expensesByMonth[monthKey].items.push(expense);
     });
+    
     const container = document.getElementById('expensesByMonth');
     container.innerHTML = '';
     const sortedMonths = Object.keys(expensesByMonth).sort().reverse();
+    
     if (sortedMonths.length === 0) {
         container.innerHTML = '<p style="text-align:center;color:#666;">Nenhuma despesa cadastrada.</p>';
         return;
     }
+    
     sortedMonths.forEach(monthKey => {
         const month = expensesByMonth[monthKey];
         const div = document.createElement('div');
         div.style.cssText = 'background:white;padding:20px;border-radius:10px;margin-bottom:15px;border:2px solid #e0e0e0;';
-        div.innerHTML = `<h3 style="color:#2c3e50;margin-bottom:15px;text-transform:capitalize;">${month.name} - Total: R$ ${month.total.toFixed(2)}</h3><div style="display:grid;gap:10px;">${month.items.map(item => {
+        
+        const itemsHTML = month.items.map(item => {
             const isPaid = item.paymentStatus === 'paid';
             const bgColor = isPaid ? '#d4edda' : '#f8f9fa';
-            const textColor = isPaid ? '#155724' : '#dc3545';
-            const badge = isPaid ? ' <span style="color:#28a745;font-weight:bold;">✓ PAGO</span>' : ' <span style="color:#dc3545;font-weight:bold;">⏳ A PAGAR</span>';
-            return `<div style="padding:10px;background:${bgColor};border-radius:5px;display:flex;justify-content:space-between;align-items:center;border:1px solid ${isPaid?'#c3e6cb':'#e0e0e0'};"><span>${item.description}${badge}</span><strong style="color:${textColor};">R$ ${item.value.toFixed(2)}</strong></div>`;
-        }).join('')}</div>`;
+            const borderColor = isPaid ? '#c3e6cb' : '#e0e0e0';
+            const valueColor = isPaid ? '#155724' : '#dc3545';
+            const statusBadge = isPaid 
+                ? '<span style="color:#28a745;font-weight:bold;font-size:11px;margin-left:8px;">✓ PAGO</span>' 
+                : '<span style="color:#dc3545;font-weight:bold;font-size:11px;margin-left:8px;">⏳ A PAGAR</span>';
+            
+            return `<div style="padding:12px;background:${bgColor};border-radius:5px;display:flex;justify-content:space-between;align-items:center;border:2px solid ${borderColor};"><span style="font-weight:500;">${item.description}${statusBadge}</span><strong style="color:${valueColor};font-size:16px;">R$ ${item.value.toFixed(2)}</strong></div>`;
+        }).join('');
+        
+        div.innerHTML = `<h3 style="color:#2c3e50;margin-bottom:15px;text-transform:capitalize;">${month.name} - Total: R$ ${month.total.toFixed(2)}</h3><div style="display:grid;gap:10px;">${itemsHTML}</div>`;
         container.appendChild(div);
     });
 }
 
 // ===== USUÁRIOS =====
+const validateFullName = name => name.trim().split(' ').filter(p => p.length > 0).length >= 2;
+
+document.getElementById('showUserFormBtn').addEventListener('click', () => {
+    document.getElementById('userFormContainer').style.display = 'block';
+});
+
+document.getElementById('cancelUserBtn').addEventListener('click', () => {
+    document.getElementById('userFormContainer').style.display = 'none';
+    document.getElementById('userForm').reset();
+});
+
+document.getElementById('userForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('userName').value.trim();
+    const username = document.getElementById('userUsername').value.trim();
+    const password = document.getElementById('userPassword').value.trim();
+    const secretQuestion = document.getElementById('userSecretQuestion').value;
+    const secretAnswer = document.getElementById('userSecretAnswer').value.toLowerCase().trim();
+    
+    if (DB.users.find(u => u.username === username)) {
+        showAlert('Já existe um usuário com este login!', 'error');
+        return;
+    }
+    
+    DB.users.push({
+        id: Date.now(),
+        name,
+        username,
+        password,
+        isAdmin: true,
+        secretQuestion,
+        secretAnswer
+    });
+    
+    saveToStorage();
+    showAlert('Administrador cadastrado com sucesso!', 'success');
+    
+    document.getElementById('userForm').reset();
+    document.getElementById('userFormContainer').style.display = 'none';
+    loadUsers();
+});
+
 function loadUsers() {
     const tbody = document.getElementById('usersTable');
     tbody.innerHTML = '';
@@ -514,5 +769,21 @@ function loadLogoPreview() {
 }
 
 // ===== INICIALIZAR =====
+// Corrigir despesas antigas que não têm paymentStatus
+function fixOldExpenses() {
+    let fixed = 0;
+    DB.expenses.forEach(expense => {
+        if (expense.paymentStatus === undefined || expense.paymentStatus === null) {
+            expense.paymentStatus = 'pending';
+            fixed++;
+        }
+    });
+    if (fixed > 0) {
+        saveToStorage();
+        console.log(`✓ ${fixed} despesas antigas corrigidas com status 'pending'`);
+    }
+}
+
+fixOldExpenses();
 loadProducts();
 loadLogoPreview();

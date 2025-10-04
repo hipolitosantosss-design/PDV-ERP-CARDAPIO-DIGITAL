@@ -139,8 +139,12 @@ document.getElementById('loginForm').addEventListener('submit', e => {
         DB.currentUser = user;
         document.getElementById('currentUser').textContent = user.name;
         
-        if (user.isAdmin) {
-            document.querySelectorAll('.admin-only').forEach(el => el.classList.add('show'));
+        // Mostrar funcionalidades de admin para qualquer usuário com isAdmin = true
+        if (user.isAdmin === true) {
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.classList.add('show');
+                if (el.style) el.style.display = '';
+            });
         }
         
         document.getElementById('loginForm').reset();
@@ -150,7 +154,7 @@ document.getElementById('loginForm').addEventListener('submit', e => {
         loadClientesSelect();
         showAlert('Login realizado com sucesso!', 'success');
     } else {
-        showAlert('Usuário ou senha incorretos!', 'error');
+        showAlert('Dados incorretos! Verifique seu usuário e senha e tente novamente.', 'error');
     }
 });
 
@@ -485,6 +489,106 @@ document.getElementById('confirmarVendaBtn').addEventListener('click', () => {
     loadProducts();
     document.getElementById('vendaModal').classList.remove('active');
 });
+
+// ===== EXCLUIR VENDAS (NOVO) =====
+function showDeleteSalesModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.id = 'deleteSalesModal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>Excluir Registros de Vendas</h3>
+            <div class="form-group">
+                <label>Escolha uma opção:</label>
+                <select id="deleteOption" class="form-control">
+                    <option value="">Selecione...</option>
+                    <option value="date">Excluir por data específica</option>
+                    <option value="all">Excluir TODAS as vendas</option>
+                </select>
+            </div>
+            <div class="form-group" id="datePickerGroup" style="display:none;">
+                <label>Selecione a data:</label>
+                <input type="date" id="deleteSaleDate" class="form-control">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-danger" id="confirmDeleteSales">Confirmar Exclusão</button>
+                <button class="btn btn-secondary" id="cancelDeleteSales">Cancelar</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    document.getElementById('deleteOption').addEventListener('change', (e) => {
+        const dateGroup = document.getElementById('datePickerGroup');
+        dateGroup.style.display = e.target.value === 'date' ? 'block' : 'none';
+    });
+    
+    document.getElementById('cancelDeleteSales').addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    document.getElementById('confirmDeleteSales').addEventListener('click', () => {
+        const option = document.getElementById('deleteOption').value;
+        
+        if (!option) {
+            showAlert('Selecione uma opção!', 'error');
+            return;
+        }
+        
+        if (option === 'date') {
+            const dateValue = document.getElementById('deleteSaleDate').value;
+            if (!dateValue) {
+                showAlert('Selecione uma data!', 'error');
+                return;
+            }
+            
+            const selectedDate = new Date(dateValue);
+            const salesToDelete = DB.sales.filter(sale => {
+                const saleDate = new Date(sale.date);
+                return saleDate.toDateString() === selectedDate.toDateString();
+            });
+            
+            if (salesToDelete.length === 0) {
+                showAlert('Nenhuma venda encontrada nesta data.', 'error');
+                return;
+            }
+            
+            if (confirm(`Deseja realmente excluir ${salesToDelete.length} venda(s) da data ${selectedDate.toLocaleDateString('pt-BR')}?`)) {
+                DB.sales = DB.sales.filter(sale => {
+                    const saleDate = new Date(sale.date);
+                    return saleDate.toDateString() !== selectedDate.toDateString();
+                });
+                
+                saveToStorage();
+                showAlert(`${salesToDelete.length} venda(s) excluída(s) com sucesso!`, 'success');
+                modal.remove();
+            }
+        } else if (option === 'all') {
+            const totalSales = DB.sales.length;
+            
+            if (totalSales === 0) {
+                showAlert('Não há vendas para excluir.', 'error');
+                return;
+            }
+            
+            const confirmMessage = `⚠️ ATENÇÃO!\n\nVocê está prestes a excluir TODAS AS ${totalSales} VENDAS registradas.\n\nEsta ação NÃO PODE ser desfeita!\n\nDeseja realmente continuar?`;
+            
+            if (confirm(confirmMessage)) {
+                const doubleConfirm = prompt('Para confirmar, digite: EXCLUIR TUDO');
+                if (doubleConfirm === 'EXCLUIR TUDO') {
+                    DB.sales = [];
+                    saveToStorage();
+                    showAlert(`${totalSales} venda(s) excluída(s) com sucesso!`, 'success');
+                    modal.remove();
+                } else {
+                    showAlert('Exclusão cancelada. Texto de confirmação incorreto.', 'error');
+                }
+            }
+        }
+    });
+}
+
+window.showDeleteSalesModal = showDeleteSalesModal;
 
 // ===== CLIENTES =====
 function loadClients() {
