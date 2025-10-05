@@ -21,6 +21,7 @@
             <div class="admin-tabs">
                 <button class="tab-btn active" data-tab="config">Configurações</button>
                 <button class="tab-btn" data-tab="produtos">Produtos</button>
+                <button class="tab-btn" data-tab="funcionarios">Funcionários</button>
                 <button class="tab-btn" data-tab="despesas">Despesas</button>
                 <button class="tab-btn" data-tab="relatorio">Relatório</button>
                 <button class="tab-btn" data-tab="financeiro">Financeiro</button>
@@ -128,6 +129,60 @@
                 </table>
             </div>
 
+            <!-- TAB FUNCIONÁRIOS -->
+            <div id="funcionariosTab" class="tab-content">
+                <h2>Gerenciar Funcionários</h2>
+                
+                <button class="btn btn-primary" id="showEmployeeFormBtn" style="margin-bottom: 20px;">Novo Funcionário</button>
+
+                <div id="employeeFormContainer" class="form-container">
+                    <form id="employeeForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nome Completo:*</label>
+                                <input type="text" id="employeeName" required pattern="^[A-Za-zÀ-ÿ\s]+\s+[A-Za-zÀ-ÿ\s]+$" title="Informe nome e sobrenome">
+                            </div>
+                            <div class="form-group">
+                                <label>Cargo:*</label>
+                                <input type="text" id="employeePosition" required placeholder="Ex: Vendedor, Gerente, Caixa">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Salário:*</label>
+                                <input type="number" id="employeeSalary" step="0.01" required placeholder="0,00">
+                            </div>
+                            <div class="form-group">
+                                <label>Telefone:</label>
+                                <input type="tel" id="employeePhone" placeholder="(00) 00000-0000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>E-mail:</label>
+                            <input type="email" id="employeeEmail" placeholder="email@exemplo.com">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-success">Cadastrar Funcionário</button>
+                            <button type="button" class="btn btn-secondary" id="cancelEmployeeBtn">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Cargo</th>
+                            <th>Salário</th>
+                            <th>Telefone</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="employeesTable"></tbody>
+                </table>
+            </div>
+
             <!-- TAB DESPESAS -->
             <div id="despesasTab" class="tab-content">
                 <h2>Gerenciar Despesas</h2>
@@ -135,6 +190,7 @@
                 <div class="expense-header">
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                         <button class="btn btn-primary" id="showExpenseFormBtn">Nova Despesa</button>
+                        <button class="btn btn-success" id="showEmployeeExpenseBtn">Despesa com Funcionário</button>
                         <button class="btn btn-danger" id="deleteAllExpensesBtn">Excluir Todas as Despesas</button>
                     </div>
                     
@@ -152,10 +208,39 @@
                             <span class="expense-summary-value expense-pending" id="monthPendingExpense">R$ 0,00</span>
                         </div>
                     </div>
+
+                    <div style="display:flex; gap:10px; margin-top:20px;">
+                        <div class="form-group" style="flex:1;">
+                            <label>Filtrar por Nome:</label>
+                            <select id="filterExpenseName" class="form-control">
+                                <option value="todos">Todas</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Filtrar por Status:</label>
+                            <select id="filterExpenseStatus" class="form-control">
+                                <option value="todos">Todas</option>
+                                <option value="pago">Pago</option>
+                                <option value="nao-pago">A Pagar</option>
+                                <option value="mes-vigente">Mês Vigente</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 
                 <div id="expenseFormContainer" class="form-container">
                     <form id="expenseForm">
+                        <div id="employeeExpenseSection" style="display:none; background:#e3f2fd; padding:15px; border-radius:8px; margin-bottom:15px;">
+                            <h4 style="color:#1976d2; margin-bottom:10px;">💼 Despesa com Funcionário</h4>
+                            <div class="form-group">
+                                <label>Selecione o Funcionário:*</label>
+                                <select id="employeeSelect">
+                                    <option value="">Carregando...</option>
+                                </select>
+                            </div>
+                            <p style="font-size:12px; color:#555; margin-top:10px;">O salário será preenchido automaticamente. Você pode ajustar se necessário.</p>
+                        </div>
+
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Descrição:*</label>
@@ -187,7 +272,7 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="form-row" id="recurringMonths">
+                        <div class="form-row" id="recurringMonths" style="display:none;">
                             <div class="form-group">
                                 <label>Repetir por quantos meses:*</label>
                                 <input type="number" id="expMonths" min="1" max="60">
@@ -329,7 +414,7 @@
                         <div class="value value-danger" id="totalExpensesMonth">R$ 0,00</div>
                     </div>
                     <div class="stat-card">
-                        <h3>Dias Úteis do Mês</h3>
+                        <h3>Dias do Mês</h3>
                         <div class="value" id="workingDays">0</div>
                     </div>
                     <div class="stat-card">
@@ -344,7 +429,7 @@
                     
                     <div class="form-group">
                         <label>Dias de funcionamento por semana:</label>
-                        <select id="workingDaysPerWeek" onchange="calculateDailyGoal()">
+                        <select id="workingDaysPerWeek">
                             <option value="5">5 dias (Segunda a Sexta)</option>
                             <option value="6" selected>6 dias (Segunda a Sábado)</option>
                             <option value="7">7 dias (Todos os dias)</option>

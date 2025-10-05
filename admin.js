@@ -1,11 +1,11 @@
 /* ===================================
-   ARQUIVO: admin.js (REFATORADO)
+   ARQUIVO: admin.js (REFATORADO COM FUNCIONÁRIOS)
    DESCRIÇÃO: Painel Administrativo Modular
    =================================== */
 
 // ===== MÓDULO: DATABASE & STORAGE =====
 const StorageModule = (() => {
-    let DB = { users: [], clients: [], products: [], sales: [], expenses: [] };
+    let DB = { users: [], clients: [], products: [], sales: [], expenses: [], employees: [] };
 
     const loadFromStorage = () => {
         try {
@@ -17,6 +17,7 @@ const StorageModule = (() => {
                 DB.products = data.products || [];
                 DB.sales = data.sales || [];
                 DB.expenses = data.expenses || [];
+                DB.employees = data.employees || [];
                 return true;
             }
         } catch (e) {
@@ -73,7 +74,11 @@ const UtilsModule = (() => {
     };
 
     const formatCurrency = (value) => {
-        return `R$ ${parseFloat(value).toFixed(2)}`;
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) return 'R$ 0,00';
+        
+        // Formata com separador de milhares (ponto) e decimais (vírgula)
+        return `R$ ${numValue.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
     };
 
     const formatDate = (dateInput) => {
@@ -199,6 +204,7 @@ const TabsModule = (() => {
         const activeTab = activeBtn.getAttribute('data-tab');
         const tabActions = {
             produtos: ProductsModule.load,
+            funcionarios: EmployeesModule.load,
             despesas: ExpensesModule.load,
             relatorio: ReportsModule.loadSales,
             financeiro: ReportsModule.loadFinancial,
@@ -359,91 +365,6 @@ const ProductsModule = (() => {
         showAlert(isActive ? 'Produto ativado!' : 'Produto desativado!', 'success');
     };
 
-    const edit = (productId) => {
-        const product = DB().products.find(p => p.id === productId);
-        if (!product) {
-            showAlert('Produto não encontrado!', 'error');
-            return;
-        }
-
-        // Armazena o código original para comparação
-        const originalCode = product.code;
-
-        document.getElementById('prodName').value = product.name;
-        document.getElementById('prodCode').value = product.code;
-        document.getElementById('prodCategory').value = product.category;
-        document.getElementById('prodDescription').value = product.description || '';
-        document.getElementById('prodPrice').value = product.price;
-        document.getElementById('prodStock').value = product.stock;
-
-        if (product.image) {
-            document.getElementById('imagePreview').src = product.image;
-            document.getElementById('imagePreview').style.display = 'block';
-        } else {
-            document.getElementById('imagePreview').style.display = 'none';
-        }
-
-        const submitBtn = document.querySelector('#productForm button[type="submit"]');
-        submitBtn.textContent = 'Salvar Edição';
-
-        document.getElementById('productFormContainer').style.display = 'block';
-        document.getElementById('productFormContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-        const form = document.getElementById('productForm');
-        form.onsubmit = (e) => handleEditSubmit(e, productId, product, originalCode, submitBtn, form);
-    };
-
-    const handleEditSubmit = (e, productId, product, originalCode, submitBtn, form) => {
-        e.preventDefault();
-
-        const newCode = document.getElementById('prodCode').value.trim().toUpperCase();
-        
-        // Só valida código duplicado se o código foi alterado
-        if (newCode !== originalCode) {
-            const otherProductWithSameCode = DB().products.find(p => p.id !== productId && p.code === newCode);
-            
-            if (otherProductWithSameCode) {
-                showAlert('Já existe outro produto com este código!', 'error');
-                return;
-            }
-        }
-
-        const updateProduct = (imgData) => {
-            try {
-                product.name = document.getElementById('prodName').value.trim();
-                product.code = newCode;
-                product.category = document.getElementById('prodCategory').value;
-                product.description = document.getElementById('prodDescription').value.trim();
-                product.price = parseFloat(document.getElementById('prodPrice').value);
-                product.stock = parseInt(document.getElementById('prodStock').value);
-                if (imgData) product.image = imgData;
-
-                StorageModule.saveToStorage();
-                showAlert('Produto atualizado com sucesso!', 'success');
-
-                submitBtn.textContent = 'Salvar Produto';
-                form.reset();
-                document.getElementById('productFormContainer').style.display = 'none';
-                document.getElementById('imagePreview').style.display = 'none';
-                form.onsubmit = handleSubmit;
-
-                load();
-            } catch (error) {
-                console.error('Erro ao atualizar produto:', error);
-                showAlert('Erro ao atualizar produto', 'error');
-            }
-        };
-
-        const imageFile = document.getElementById('prodImage').files[0];
-        if (imageFile) {
-            const reader = new FileReader();
-            reader.onload = (event) => updateProduct(event.target.result);
-            reader.readAsDataURL(imageFile);
-        } else {
-            updateProduct(null);
-        }
-    };
-
     const editStock = (productId) => {
         const product = DB().products.find(p => p.id === productId);
         if (!product) {
@@ -508,7 +429,6 @@ const ProductsModule = (() => {
         init,
         load,
         toggle,
-        edit,
         editStock,
         delete: deleteProduct,
         deleteAll
@@ -517,6 +437,132 @@ const ProductsModule = (() => {
 
 // Expor globalmente para onclick
 window.ProductsModule = ProductsModule;
+
+// ===== MÓDULO: FUNCIONÁRIOS =====
+const EmployeesModule = (() => {
+    const DB = StorageModule.getDB;
+    const { showAlert, formatCurrency, validateFullName } = UtilsModule;
+
+    const init = () => {
+        document.getElementById('showEmployeeFormBtn')?.addEventListener('click', showForm);
+        document.getElementById('cancelEmployeeBtn')?.addEventListener('click', hideForm);
+        document.getElementById('employeeForm')?.addEventListener('submit', handleSubmit);
+    };
+
+    const showForm = () => {
+        document.getElementById('employeeFormContainer').style.display = 'block';
+        document.getElementById('employeeForm').reset();
+    };
+
+    const hideForm = () => {
+        document.getElementById('employeeFormContainer').style.display = 'none';
+        document.getElementById('employeeForm').reset();
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById('employeeName').value.trim();
+        const position = document.getElementById('employeePosition').value.trim();
+        const salary = parseFloat(document.getElementById('employeeSalary').value);
+        const phone = document.getElementById('employeePhone').value.trim();
+        const email = document.getElementById('employeeEmail').value.trim();
+
+        if (!validateFullName(name)) {
+            showAlert('Por favor, informe nome e sobrenome completos!', 'error');
+            return;
+        }
+
+        try {
+            DB().employees.push({
+                id: Date.now(),
+                name,
+                position,
+                salary,
+                phone,
+                email,
+                active: true,
+                hireDate: new Date().toISOString()
+            });
+
+            StorageModule.saveToStorage();
+            showAlert(`Funcionário "${name}" cadastrado com sucesso!`, 'success');
+            hideForm();
+            load();
+        } catch (error) {
+            console.error('Erro ao cadastrar funcionário:', error);
+            showAlert('Erro ao cadastrar funcionário', 'error');
+        }
+    };
+
+    const load = () => {
+        const tbody = document.getElementById('employeesTable');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
+
+        if (DB().employees.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;"><div style="color:#666;"><strong style="font-size:18px;display:block;margin-bottom:10px;">👤 Nenhum funcionário cadastrado</strong><p style="margin:10px 0;">Clique no botão "Novo Funcionário" acima para adicionar.</p></div></td></tr>';
+            return;
+        }
+
+        DB().employees.forEach(employee => {
+            const isActive = employee.active !== false;
+            const tr = document.createElement('tr');
+            tr.style.opacity = isActive ? '1' : '0.5';
+
+            const statusHTML = isActive 
+                ? '<span style="color:green;">Ativo</span>'
+                : '<span style="color:red;">Inativo</span>';
+
+            tr.innerHTML = `
+                <td>${employee.name}</td>
+                <td>${employee.position}</td>
+                <td><strong>${formatCurrency(employee.salary)}</strong></td>
+                <td>${employee.phone || 'N/A'}</td>
+                <td>${statusHTML}</td>
+                <td>
+                    <label class="toggle-switch">
+                        <input type="checkbox" ${isActive ? 'checked' : ''} onchange="EmployeesModule.toggle(${employee.id}, this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <button class="btn btn-small btn-danger" onclick="EmployeesModule.delete(${employee.id})" style="margin-left:10px;">Excluir</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
+
+    const toggle = (employeeId, isActive) => {
+        const employee = DB().employees.find(e => e.id === employeeId);
+        if (!employee) return;
+        
+        employee.active = isActive;
+        StorageModule.saveToStorage();
+        load();
+        showAlert(isActive ? 'Funcionário ativado!' : 'Funcionário desativado!', 'success');
+    };
+
+    const deleteEmployee = (employeeId) => {
+        const employee = DB().employees.find(e => e.id === employeeId);
+        if (!employee) return;
+
+        if (confirm(`Deseja realmente excluir o funcionário "${employee.name}"?`)) {
+            const index = DB().employees.findIndex(e => e.id === employeeId);
+            if (index > -1) {
+                DB().employees.splice(index, 1);
+                StorageModule.saveToStorage();
+                load();
+                showAlert('Funcionário excluído com sucesso!', 'success');
+            }
+        }
+    };
+
+    return { init, load, toggle, delete: deleteEmployee };
+})();
+
+// Expor globalmente
+window.EmployeesModule = EmployeesModule;
 
 // ===== MÓDULO: DESPESAS =====
 const ExpensesModule = (() => {
@@ -529,6 +575,7 @@ const ExpensesModule = (() => {
 
     const init = () => {
         document.getElementById('showExpenseFormBtn')?.addEventListener('click', showForm);
+        document.getElementById('showEmployeeExpenseBtn')?.addEventListener('click', showEmployeeExpenseForm);
         document.getElementById('cancelExpenseBtn')?.addEventListener('click', hideForm);
         document.getElementById('expRecurring')?.addEventListener('change', handleRecurringChange);
         document.getElementById('expenseForm')?.addEventListener('submit', handleSubmit);
@@ -542,7 +589,52 @@ const ExpensesModule = (() => {
         document.getElementById('expenseForm').reset();
         document.getElementById('expRecurring').disabled = false;
         document.getElementById('expMonths').disabled = false;
+        document.getElementById('employeeExpenseSection').style.display = 'none';
         document.getElementById('expenseFormContainer').style.display = 'block';
+    };
+
+    const showEmployeeExpenseForm = () => {
+        resetEditState();
+        document.getElementById('expenseForm').reset();
+        document.getElementById('expRecurring').disabled = false;
+        document.getElementById('expMonths').disabled = false;
+        populateEmployeeSelect();
+        document.getElementById('employeeExpenseSection').style.display = 'block';
+        document.getElementById('expenseFormContainer').style.display = 'block';
+    };
+
+    const populateEmployeeSelect = () => {
+        const select = document.getElementById('employeeSelect');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">Selecione um funcionário...</option>';
+        
+        const activeEmployees = DB().employees.filter(e => e.active !== false);
+        
+        if (activeEmployees.length === 0) {
+            select.innerHTML = '<option value="">Nenhum funcionário cadastrado</option>';
+            showAlert('Cadastre funcionários primeiro na aba "Funcionários"', 'error');
+            return;
+        }
+
+        activeEmployees.forEach(employee => {
+            const option = document.createElement('option');
+            option.value = employee.id;
+            option.textContent = `${employee.name} - ${formatCurrency(employee.salary)}`;
+            option.dataset.salary = employee.salary;
+            option.dataset.name = employee.name;
+            select.appendChild(option);
+        });
+
+        select.addEventListener('change', handleEmployeeSelect);
+    };
+
+    const handleEmployeeSelect = (e) => {
+        const selectedOption = e.target.selectedOptions[0];
+        if (selectedOption && selectedOption.dataset.salary) {
+            document.getElementById('expValue').value = selectedOption.dataset.salary;
+            document.getElementById('expDesc').value = `Salário - ${selectedOption.dataset.name}`;
+        }
     };
 
     const hideForm = () => {
@@ -550,6 +642,7 @@ const ExpensesModule = (() => {
         document.getElementById('expenseFormContainer').style.display = 'none';
         document.getElementById('expenseForm').reset();
         document.getElementById('recurringMonths').style.display = 'none';
+        document.getElementById('employeeExpenseSection').style.display = 'none';
         document.getElementById('expRecurring').disabled = false;
         document.getElementById('expMonths').disabled = false;
     };
@@ -930,6 +1023,7 @@ const ExpensesModule = (() => {
             document.getElementById('recurringMonths').style.display = 'none';
         }
 
+        document.getElementById('employeeExpenseSection').style.display = 'none';
         document.getElementById('expenseFormContainer').style.display = 'block';
         document.getElementById('expenseFormContainer').scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
@@ -1384,6 +1478,7 @@ const AppInit = (() => {
         // Inicializar módulos
         TabsModule.init();
         ProductsModule.init();
+        EmployeesModule.init();
         ExpensesModule.init();
         UsersModule.init();
         GoalsModule.init();
