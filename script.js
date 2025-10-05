@@ -40,34 +40,6 @@ function saveToStorage() {
 window.DB = DB;
 window.saveToStorage = saveToStorage;
 
-// ===== INICIALIZAÇÃO =====
-function initializeDB() {
-    loadFromStorage();
-    
-    if (DB.users.length === 0) {
-        DB.users.push({
-            id: 1,
-            name: 'Administrador Sistema',
-            username: 'admin',
-            password: 'admin123',
-            isAdmin: true,
-            secretQuestion: 'pet',
-            secretAnswer: 'rex'
-        });
-        saveToStorage();
-    }
-
-    if (DB.products.length === 0) {
-        DB.products.push(
-            { id: 1, name: 'Café Puro', code: '001', description: 'Café preparado com grãos classe 1 moído na hora', price: 9.00, stock: 5, active: true },
-            { id: 2, name: 'Água de coco', code: '002', description: 'Água de coco em garrafa 200ML', price: 8.00, stock: 20, active: true },
-            { id: 3, name: 'Frango Assado inteiro', code: '003', description: 'Frango assado inteiro, o melhor tempero, sabor Beulah', price: 55.00, stock: 70, active: true },
-            { id: 4, name: 'Coxa de Frango Assado', code: '004', description: '10 coxas de frango assado, melhor tempero, sabor Beulah', price: 55.00, stock: 30, active: true }
-        );
-        saveToStorage();
-    }
-}
-
 // ===== HELPERS =====
 const showScreen = screenId => {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -93,6 +65,25 @@ function showAlert(message, type = 'success') {
     insertPoint.insertBefore(alertDiv, insertPoint.firstChild);
     
     setTimeout(() => alertDiv.remove(), 3000);
+}
+
+// ===== VALIDAÇÃO INLINE =====
+function showInlineError(inputElement, message) {
+    removeInlineError(inputElement);
+    
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'inline-error';
+    errorDiv.style.cssText = 'color:#dc3545;font-size:12px;margin-top:5px;font-weight:600;';
+    errorDiv.textContent = message;
+    
+    inputElement.style.borderColor = '#dc3545';
+    inputElement.parentElement.appendChild(errorDiv);
+}
+
+function removeInlineError(inputElement) {
+    inputElement.style.borderColor = '';
+    const existingError = inputElement.parentElement.querySelector('.inline-error');
+    if (existingError) existingError.remove();
 }
 
 const validateFullName = name => name.trim().split(' ').filter(p => p.length > 0).length >= 2;
@@ -121,15 +112,21 @@ window.addEventListener('storage', (e) => {
     if (e.key === 'company_logo') loadCompanyLogo();
 });
 
-// ===== AUTENTICAÇÃO =====
+// ===== AUTENTICAÇÃO - LOGIN COM VALIDAÇÃO INLINE =====
 document.getElementById('loginForm').addEventListener('submit', e => {
     e.preventDefault();
     
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value.trim();
+    const usernameInput = document.getElementById('loginUsername');
+    const passwordInput = document.getElementById('loginPassword');
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
+    
+    removeInlineError(usernameInput);
+    removeInlineError(passwordInput);
     
     if (!username || !password) {
-        showAlert('Preencha todos os campos.', 'error');
+        if (!username) showInlineError(usernameInput, 'Por favor, preencha o usuário');
+        if (!password) showInlineError(passwordInput, 'Por favor, preencha a senha');
         return;
     }
 
@@ -139,7 +136,6 @@ document.getElementById('loginForm').addEventListener('submit', e => {
         DB.currentUser = user;
         document.getElementById('currentUser').textContent = user.name;
         
-        // Mostrar funcionalidades de admin para qualquer usuário com isAdmin = true
         if (user.isAdmin === true) {
             document.querySelectorAll('.admin-only').forEach(el => {
                 el.classList.add('show');
@@ -154,11 +150,12 @@ document.getElementById('loginForm').addEventListener('submit', e => {
         loadClientesSelect();
         showAlert('Login realizado com sucesso!', 'success');
     } else {
-        showAlert('Dados incorretos! Verifique seu usuário e senha e tente novamente.', 'error');
+        showInlineError(usernameInput, 'Usuário ou senha incorretos');
+        showInlineError(passwordInput, 'Usuário ou senha incorretos');
     }
 });
 
-// ===== CADASTRO =====
+// ===== CADASTRO COM VALIDAÇÃO INLINE DE SOBRENOME =====
 document.getElementById('showRegisterLink').addEventListener('click', e => {
     e.preventDefault();
     showScreen('registerScreen');
@@ -169,22 +166,37 @@ document.getElementById('backToLogin').addEventListener('click', () => {
     document.getElementById('registerForm').reset();
 });
 
+// Validação em tempo real do nome completo
+document.getElementById('regName').addEventListener('input', e => {
+    const nameInput = e.target;
+    removeInlineError(nameInput);
+    
+    if (nameInput.value.trim() && !validateFullName(nameInput.value)) {
+        showInlineError(nameInput, 'Por favor, informe nome e sobrenome');
+    }
+});
+
 document.getElementById('registerForm').addEventListener('submit', e => {
     e.preventDefault();
     
-    const name = document.getElementById('regName').value.trim();
-    const username = document.getElementById('regUsername').value.trim();
+    const nameInput = document.getElementById('regName');
+    const usernameInput = document.getElementById('regUsername');
+    const name = nameInput.value.trim();
+    const username = usernameInput.value.trim();
     const password = document.getElementById('regPassword').value.trim();
     const secretQuestion = document.getElementById('regSecretQuestion').value;
     const secretAnswer = document.getElementById('regSecretAnswer').value.toLowerCase().trim();
     
+    removeInlineError(nameInput);
+    removeInlineError(usernameInput);
+    
     if (!validateFullName(name)) {
-        showAlert('Por favor, informe nome e sobrenome completos!', 'error');
+        showInlineError(nameInput, 'Por favor, informe nome e sobrenome completos');
         return;
     }
     
     if (DB.users.find(u => u.username === username)) {
-        showAlert('Usuário já existe!', 'error');
+        showInlineError(usernameInput, 'Este usuário já existe! Escolha outro nome de usuário');
         return;
     }
     
@@ -490,7 +502,7 @@ document.getElementById('confirmarVendaBtn').addEventListener('click', () => {
     document.getElementById('vendaModal').classList.remove('active');
 });
 
-// ===== EXCLUIR VENDAS (NOVO) =====
+// ===== EXCLUIR VENDAS =====
 function showDeleteSalesModal() {
     const modal = document.createElement('div');
     modal.className = 'modal active';
@@ -669,6 +681,33 @@ document.getElementById('clientForm').addEventListener('submit', e => {
     loadClientesSelect();
 });
 
-// ===== INICIALIZAR =====
+// ===== INICIALIZAÇÃO =====
+function initializeDB() {
+    loadFromStorage();
+    
+    if (DB.users.length === 0) {
+        DB.users.push({
+            id: 1,
+            name: 'Administrador Sistema',
+            username: 'admin',
+            password: 'admin123',
+            isAdmin: true,
+            secretQuestion: 'pet',
+            secretAnswer: 'rex'
+        });
+        saveToStorage();
+    }
+
+    if (DB.products.length === 0) {
+        DB.products.push(
+            { id: 1, name: 'Café Puro', code: '001', description: 'Café preparado com grãos classe 1 moído na hora', price: 9.00, stock: 5, active: true },
+            { id: 2, name: 'Água de coco', code: '002', description: 'Água de coco em garrafa 200ML', price: 8.00, stock: 20, active: true },
+            { id: 3, name: 'Frango Assado inteiro', code: '003', description: 'Frango assado inteiro, o melhor tempero, sabor Beulah', price: 55.00, stock: 70, active: true },
+            { id: 4, name: 'Coxa de Frango Assado', code: '004', description: '10 coxas de frango assado, melhor tempero, sabor Beulah', price: 55.00, stock: 30, active: true }
+        );
+        saveToStorage();
+    }
+}
+
 initializeDB();
 loadCompanyLogo();
